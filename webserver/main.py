@@ -12,9 +12,9 @@ SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-url: str = "https://gjcexsnjvhpivxkejkcj.supabase.co"
+url: str = ""
 print(url)
-key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY2V4c25qdmhwaXZ4a2Vqa2NqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwMzEzNzUxOCwiZXhwIjoyMDE4NzEzNTE4fQ.sEq7QUI-1GuWrR76pHjLw_Bl_6RV7Qm48kuULkSJHgY"
+key: str = ""
 print(key)
 supabase: Client = create_client(url, key)
 class Token(BaseModel):
