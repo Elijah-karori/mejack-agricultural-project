@@ -1,119 +1,91 @@
-from typing import Annotated, Union
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from fastapi import FastAPI, Form, HTTPException
 from pydantic import BaseModel
-from supabase import create_client, Client
-from passlib.context import CryptContext
+from typing import Optional
+from enum import Enum
+import bcrypt
+
 app = FastAPI()
 
-SECRET_KEY = ""
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Mock database
+users_db = []
 
-url: str = ""
-print(url)
-key: str = ""
-print(key)
-supabase: Client = create_client(url, key)
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+def send_email(email, otp):
+    # Implement email sending logic here
+    print(f"Sending OTP {otp} to {email}")
 
+# User roles
+class UserRole(str, Enum):
+    admin = "admin"
+    customer = "customer"
+    worker = "worker"
 
-class TokenData(BaseModel):
-    username: Union[str , None] = None
-
-
+# Pydantic model for user registration
 class User(BaseModel):
-    username: str
-    email:Union [str , None] = None
-    full_name: Union[str , None] = None
-    disabled:Union [bool , None] = None
+    email: str
+    password: str
+    role: UserRole
+    phone_number: Optional[str] = None
 
+# Endpoint for user registration
+@app.post("/register")
+async def register(user: User):
+    # Check if user already exists
+    if any(u.email == user.email for u in users_db):
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-class UserInDB(User):
-    hashed_password: str
+    # Hash the password
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
 
+    # Store the user in the database
+    users_db.append({
+        "email": user.email,
+        "password": hashed_password,
+        "role": user.role,
+        "phone_number": user.phone_number
+    })
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    # Generate OTP and send it via email
+   # otp = generate_otp()
+    #send_email(user.email, otp)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+    return {"message": "User registered successfully. Check your email for OTP.","data":users_db}
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
-
-@app.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-):
-    user = authenticate_user_supabase(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@app.get("/items/")
-async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
-    return {"token": token}
-
-
-@app.get("/")
-async def root():   
-    return {"users": "data"}
-   
-
-@app.get("/tables")
-async def getTables():
-          #  supabase: Client = create_client(url, key)
-            response = supabase.table('users').select("*").execute()
-            print(response)
-            return response
-
-@app.post("/createUser")
-async def addUser(user_data: dict):
-    try:
-        response = supabase.table('users').insert([user_data]).execute()
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+# Login endpoint
 @app.post("/login")
-async def logUser(credentials: dict):
-    try:
-        # Assuming 'username' and 'password' are keys in the 'credentials' dictionary
-        username = credentials.get("username")
-        password = credentials.get("password")
-
-        if not username or not password:
-            raise HTTPException(status_code=400, detail="Invalid credentials")
-
-        response = supabase.table('users').select("*").eq('name', username).execute()
-
-        if response["status"] == 200 and response["count"] == 1:
-            # Check if the retrieved user has the correct password
-            user = response["data"][0]
-            if user.get("password") == password:
-                return {"message": "Login successful"}
-        
+async def login(email: str = Form(...), password: str = Form(...)):
+    # Check if user exists
+    user = next((u for u in users_db if u['email']  == email), None)
+    if user is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+     # Verify password
+    if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Check user role
+    if user['role'] == UserRole.admin:
+        # Generate and send OTP
+        # (Implement OTP generation and sending logic here)
+        return {"message": "OTP sent to email/phone"}
+    
+    elif user['role'] == UserRole.customer:
+        # Give options to log in with password or OTP
+        # (Implement OTP generation and sending logic here)
+        return {"message": "Choose login method: Password or OTP"}
+    
+    elif user['role'] == UserRole.worker:
+        # Login with phone number and OTP
+        # (Implement OTP generation and sending logic here)
+        return {"message": "Login with phone number and OTP"}
+
+# Endpoint for verifying OTP
+@app.post("/verify-otp")
+async def verify_otp(email: str = Form(...), otp: str = Form(...)):
+    # Find the user by email
+    user = next((u for u in users_db if u['email'] == email), None)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify OTP
+    if otp != user.otp:
+        raise HTTPException(status_code=401, detail="Invalid OTP")
+
+    # OTP verification successful, proceed with further actions
