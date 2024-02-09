@@ -3,12 +3,17 @@ from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 import bcrypt
+import string
+import random
+import smtplib
 
 app = FastAPI()
 
 # Mock database
 users_db = []
-
+def generate_otp(length):
+    charactersting = string.ascii_letters + string.digits
+    return ''.join(random.choice(charactersting) for _ in range(length))
 def send_email(email, otp):
     # Implement email sending logic here
     print(f"Sending OTP {otp} to {email}")
@@ -30,7 +35,7 @@ class User(BaseModel):
 @app.post("/register")
 async def register(user: User):
     # Check if user already exists
-    if any(u.email == user.email for u in users_db):
+    if any(u['email'] == user.email for u in users_db):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # Hash the password
@@ -45,10 +50,10 @@ async def register(user: User):
     })
 
     # Generate OTP and send it via email
-   # otp = generate_otp()
+    otp = generate_otp(6)
     #send_email(user.email, otp)
 
-    return {"message": "User registered successfully. Check your email for OTP.","data":users_db}
+    return {"message": "User registered successfully. Check your email for OTP.","data":users_db, "otp":otp}
 
 # Login endpoint
 @app.post("/login")
@@ -63,18 +68,21 @@ async def login(email: str = Form(...), password: str = Form(...)):
     # Check user role
     if user['role'] == UserRole.admin:
         # Generate and send OTP
+        otp=generate_otp(8)
         # (Implement OTP generation and sending logic here)
-        return {"message": "OTP sent to email/phone"}
+        return {"message": "OTP sent to email/phone",'otp':otp}
     
     elif user['role'] == UserRole.customer:
         # Give options to log in with password or OTP
+        otp=generate_otp(6)
         # (Implement OTP generation and sending logic here)
-        return {"message": "Choose login method: Password or OTP"}
+        return {"message": "Choose login method: Password or OTP",'otp':otp}
     
     elif user['role'] == UserRole.worker:
         # Login with phone number and OTP
+        otp=generate_otp(7)
         # (Implement OTP generation and sending logic here)
-        return {"message": "Login with phone number and OTP"}
+        return {"message": "Login with phone number and OTP",'otp':otp}
 
 # Endpoint for verifying OTP
 @app.post("/verify-otp")
