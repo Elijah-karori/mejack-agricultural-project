@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI, Form, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -5,7 +6,32 @@ from enum import Enum
 import bcrypt
 import string
 import random
-import smtplib
+import os
+
+import requests
+
+# Function to send OTP to email
+def send_email(to_email: str, subject: str, text_content: str):
+    url = "https://api.brevo.com/v3/smtp/email"
+    payload = json.dumps(
+        {
+            "sender": {"name": "Sourabh", "email": "elijakarori23@gmail.com"},
+            "to": [{"email": f"{to_email}"}],
+            "subject": subject,
+            "textContent": text_content,
+        }
+    )
+    headers = {
+        "accept": "application/json",
+        "api-key": "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",
+        "content-type": "application/json",
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+    print(response.text)
+
+
+
+
 
 app = FastAPI()
 
@@ -14,9 +40,7 @@ users_db = []
 def generate_otp(length):
     charactersting = string.ascii_letters + string.digits
     return ''.join(random.choice(charactersting) for _ in range(length))
-def send_email(email, otp):
-    # Implement email sending logic here
-    print(f"Sending OTP {otp} to {email}")
+
 
 # User roles
 class UserRole(str, Enum):
@@ -51,7 +75,8 @@ async def register(user: User):
 
     # Generate OTP and send it via email
     otp = generate_otp(6)
-    #send_email(user.email, otp)
+    print(user.email)
+    send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
 
     return {"message": "User registered successfully. Check your email for OTP.","data":users_db, "otp":otp}
 
@@ -70,18 +95,21 @@ async def login(email: str = Form(...), password: str = Form(...)):
         # Generate and send OTP
         otp=generate_otp(8)
         # (Implement OTP generation and sending logic here)
+        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
         return {"message": "OTP sent to email/phone",'otp':otp}
     
     elif user['role'] == UserRole.customer:
         # Give options to log in with password or OTP
         otp=generate_otp(6)
         # (Implement OTP generation and sending logic here)
+        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
         return {"message": "Choose login method: Password or OTP",'otp':otp}
     
     elif user['role'] == UserRole.worker:
         # Login with phone number and OTP
         otp=generate_otp(7)
         # (Implement OTP generation and sending logic here)
+        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
         return {"message": "Login with phone number and OTP",'otp':otp}
 
 # Endpoint for verifying OTP
