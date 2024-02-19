@@ -1,4 +1,3 @@
-import json
 from fastapi import FastAPI, Form, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -6,40 +5,7 @@ from enum import Enum
 import bcrypt
 import string
 import random
-import os
-import dotenv
-
-dotenv.load_dotenv()
-
-import requests
-
-# Function to send OTP to email
-def send_email(to_email: str, subject: str, text_content: str):
-    url = "https://api.brevo.com/v3/smtp/email"
-    email=os.environ.get("email")
-    print(email)
-    payload = json.dumps(
-        {
-            "sender": {"name": "Sourabh", "email": email},
-            "to": [{"email": f"{to_email}"}],
-            "subject": subject,
-            "textContent": text_content,
-        }
-    )
-    api=os.environ.get("API_KEY")
-    print(api)
-    headers = {
-        "accept": "application/json",
-        "api-key":api,
-        "content-type": "application/json",
-    }
-    response = requests.request("POST", url, headers=headers, data=payload)
-    print(response.text)
-
-
-
-
-
+from services.mailersend import send_email
 app = FastAPI()
 
 # Mock database
