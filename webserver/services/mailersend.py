@@ -25,3 +25,4 @@ def send_email(recipient_email: str, subject: str, text_content: str):
     mailer.set_reply_to(reply_to, mail_body)
 
     mailer.send(mail_body)
+    print(mail_body)

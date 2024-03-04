@@ -1,8 +1,5 @@
 import os.path
 
-import base64
-from email.message import EmailMessage
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -36,34 +33,22 @@ def main():
     with open("token.json", "w") as token:
       token.write(creds.to_json())
 
-  
   try:
     # Call the Gmail API
     service = build("gmail", "v1", credentials=creds)
-    message = EmailMessage()
+    results = service.users().labels().list(userId="me").execute()
+    labels = results.get("labels", [])
 
-    message.set_content("This is automated draft mail")
+    if not labels:
+      print("No labels found.")
+      return
+    print("Labels:")
+    for label in labels:
+      print(label["name"])
 
-    message["To"] = "blakkarori@gmail.com"
-    message["From"] = "elijakarori23@gmail.com"
-    message["Subject"] = "Automated draft"
-
-    # encoded message
-    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-    create_message = {"raw": encoded_message}
-    # pylint: disable=E1101
-    send_message = (
-        service.users()
-        .messages()
-        .send(userId="me", body=create_message)
-        .execute()
-    )
-    print(f'Message Id: {send_message["id"]}')
   except HttpError as error:
+    # TODO(developer) - Handle errors from gmail API.
     print(f"An error occurred: {error}")
-    send_message = None
-  return send_message
 
 
 if __name__ == "__main__":

@@ -5,7 +5,8 @@ from enum import Enum
 import bcrypt
 import string
 import random
-from services.mailersend import send_email
+
+
 app = FastAPI()
 
 # Mock database
@@ -49,7 +50,7 @@ async def register(user: User):
     # Generate OTP and send it via email
     otp = generate_otp(6)
     print(user.email)
-    send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
+    sendemail(user.email, otp)
 
     return {"message": "User registered successfully. Check your email for OTP.","data":users_db, "otp":otp}
 
@@ -68,21 +69,21 @@ async def login(email: str = Form(...), password: str = Form(...)):
         # Generate and send OTP
         otp=generate_otp(8)
         # (Implement OTP generation and sending logic here)
-        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
+        sendemail(user.email, otp)
         return {"message": "OTP sent to email/phone",'otp':otp}
     
     elif user['role'] == UserRole.customer:
         # Give options to log in with password or OTP
         otp=generate_otp(6)
         # (Implement OTP generation and sending logic here)
-        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
+        sendemail(user.email, otp)
         return {"message": "Choose login method: Password or OTP",'otp':otp}
     
     elif user['role'] == UserRole.worker:
         # Login with phone number and OTP
         otp=generate_otp(7)
         # (Implement OTP generation and sending logic here)
-        send_email(user.email, "Your OTP Code", f"Your OTP code is: {otp}")
+        sendemail(user.email, otp)
         return {"message": "Login with phone number and OTP",'otp':otp}
 
 # Endpoint for verifying OTP
