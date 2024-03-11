@@ -1,5 +1,6 @@
 import os
 import smtplib
+from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -7,6 +8,8 @@ from enum import Enum
 import bcrypt
 import string
 import random
+
+load_dotenv()
 
 # Function to send email using smtplib
 def send_email(recipient_email, subject, body):
