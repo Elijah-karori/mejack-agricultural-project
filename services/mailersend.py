@@ -28,4 +28,4 @@ def send_email(recipient_email, subject, body):
 
 
 
-send_email("blakkarori@gmail.com","t
+send_email("blakkarori@gmail.com","test","test")
